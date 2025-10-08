@@ -6,8 +6,8 @@ let bookings = [];
 /**
  * @swagger
  * tags:
- *   name: Bookings
- *   description: Manage shuttle bookings
+ *   - name: Bookings
+ *     description: Manage shuttle bookings
  */
 
 /**
@@ -28,7 +28,7 @@ router.get("/", (req, res) => {
  * @swagger
  * /bookings/{id}:
  *   get:
- *     summary: Get booking by ID
+ *     summary: Get a booking by ID
  *     tags: [Bookings]
  *     parameters:
  *       - in: path
@@ -57,20 +57,29 @@ router.get("/:id", (req, res) => {
  *     tags: [Bookings]
  *     requestBody:
  *       required: true
+ *       description: Booking object to create
  *       content:
  *         application/json:
  *           schema:
  *             type: object
- *             required: [id, passengerName, route, price]
+ *             required:
+ *               - id
+ *               - passengerName
+ *               - route
+ *               - price
  *             properties:
  *               id:
  *                 type: string
+ *                 description: Unique booking ID
  *               passengerName:
  *                 type: string
+ *                 description: Name of the passenger
  *               route:
  *                 type: string
+ *                 description: Shuttle route
  *               price:
  *                 type: number
+ *                 description: Booking price
  *     responses:
  *       201:
  *         description: Booking created successfully
@@ -95,20 +104,29 @@ router.post("/", (req, res) => {
  *       - in: path
  *         name: id
  *         required: true
+ *         description: Booking ID to update
+ *         schema:
+ *           type: string
  *     requestBody:
  *       required: true
+ *       description: Fields to update
  *       content:
  *         application/json:
  *           schema:
  *             type: object
  *             properties:
+ *               passengerName:
+ *                 type: string
+ *                 description: Updated passenger name
  *               route:
  *                 type: string
+ *                 description: Updated shuttle route
  *               price:
  *                 type: number
+ *                 description: Updated price
  *     responses:
  *       200:
- *         description: Booking updated
+ *         description: Booking updated successfully
  *       404:
  *         description: Booking not found
  */
@@ -131,9 +149,12 @@ router.put("/:id", (req, res) => {
  *       - in: path
  *         name: id
  *         required: true
+ *         description: Booking ID to delete
+ *         schema:
+ *           type: string
  *     responses:
  *       200:
- *         description: Booking deleted
+ *         description: Booking deleted successfully
  *       404:
  *         description: Booking not found
  */

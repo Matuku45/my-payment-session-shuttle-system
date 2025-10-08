@@ -6,8 +6,8 @@ let cars = [];
 /**
  * @swagger
  * tags:
- *   name: Cars
- *   description: Manage available shuttle cars
+ *   - name: Cars
+ *     description: Manage available shuttle cars
  */
 
 /**
@@ -34,6 +34,9 @@ router.get("/", (req, res) => {
  *       - in: path
  *         name: id
  *         required: true
+ *         description: The ID of the car to retrieve
+ *         schema:
+ *           type: string
  *     responses:
  *       200:
  *         description: Car found
@@ -54,20 +57,29 @@ router.get("/:id", (req, res) => {
  *     tags: [Cars]
  *     requestBody:
  *       required: true
+ *       description: Car object to add
  *       content:
  *         application/json:
  *           schema:
  *             type: object
- *             required: [id, name, registration, numberPlate]
+ *             required:
+ *               - id
+ *               - name
+ *               - registration
+ *               - numberPlate
  *             properties:
  *               id:
  *                 type: string
+ *                 description: Unique ID of the car
  *               name:
  *                 type: string
+ *                 description: Name of the car
  *               registration:
  *                 type: string
+ *                 description: Registration number of the car
  *               numberPlate:
  *                 type: string
+ *                 description: License plate of the car
  *     responses:
  *       201:
  *         description: Car added successfully
@@ -92,8 +104,12 @@ router.post("/", (req, res) => {
  *       - in: path
  *         name: id
  *         required: true
+ *         description: ID of the car to update
+ *         schema:
+ *           type: string
  *     requestBody:
  *       required: true
+ *       description: Fields to update for the car
  *       content:
  *         application/json:
  *           schema:
@@ -101,8 +117,10 @@ router.post("/", (req, res) => {
  *             properties:
  *               registration:
  *                 type: string
+ *                 description: Updated registration number
  *               numberPlate:
  *                 type: string
+ *                 description: Updated license plate
  *     responses:
  *       200:
  *         description: Car updated successfully
@@ -128,6 +146,9 @@ router.put("/:id", (req, res) => {
  *       - in: path
  *         name: id
  *         required: true
+ *         description: ID of the car to delete
+ *         schema:
+ *           type: string
  *     responses:
  *       200:
  *         description: Car deleted
