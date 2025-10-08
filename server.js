@@ -6,8 +6,15 @@ const stripe = require("stripe")(
 );
 const swaggerJsdoc = require("swagger-jsdoc");
 const swaggerUi = require("swagger-ui-express");
+const path = require("path");
 
 const app = express();
+
+// ----------------------
+// Import additional route files
+// ----------------------
+const carsRouter = require("./routes/cars");
+const bookingsRouter = require("./routes/bookings");
 
 // ----------------------
 // CORS setup
@@ -48,7 +55,7 @@ const swaggerOptions = {
       title: "Shuttle Booking API",
       version: "1.0.0",
       description:
-        "API for booking shuttles, managing checkout sessions, and integrating with Stripe.",
+        "API for booking shuttles, managing cars, bookings, and Stripe checkout sessions.",
     },
     servers: [
       {
@@ -56,7 +63,10 @@ const swaggerOptions = {
       },
     ],
   },
-  apis: ["./server.js"],
+  apis: [
+    path.join(__dirname, "server.js"),
+    path.join(__dirname, "routes/*.js"),
+  ],
 };
 
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
@@ -66,17 +76,39 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 // Root endpoint
 // ----------------------
 app.get("/", (req, res) => {
-  res.json({ message: "Shuttle Booking API is running", environment: ENV });
+  res.json({
+    message: "Shuttle Booking API is running",
+    environment: ENV,
+    routes: {
+      swaggerDocs: "/api-docs",
+      cars: "/api/cars",
+      bookings: "/api/bookings",
+      checkout: "/create-checkout-session",
+    },
+  });
 });
 
 // ----------------------
-// In-memory store
+// Routers for Cars & Bookings
+// ----------------------
+app.use("/api/cars", carsRouter);
+app.use("/api/bookings", bookingsRouter);
+
+// ----------------------
+// In-memory store for Stripe
 // ----------------------
 const sessionsStore = [];
 
 // ----------------------
 // CRUD + Stripe endpoints
 // ----------------------
+
+/**
+ * @swagger
+ * tags:
+ *   - name: Checkout
+ *     description: Stripe checkout session operations
+ */
 
 /**
  * @swagger
@@ -92,48 +124,24 @@ const sessionsStore = [];
  *         - userId
  *         - userName
  *       properties:
- *         shuttleId:
- *           type: string
- *         shuttleRoute:
- *           type: string
- *         seats:
- *           type: integer
- *         price:
- *           type: number
- *         userId:
- *           type: string
- *         userName:
- *           type: string
- *       example:
- *         shuttleId: "343"
- *         shuttleRoute: "Cape Town - Stellenbosch"
- *         seats: 2
- *         price: 450
- *         userId: "3333"
- *         userName: "John Doe"
+ *         shuttleId: { type: string }
+ *         shuttleRoute: { type: string }
+ *         seats: { type: integer }
+ *         price: { type: number }
+ *         userId: { type: string }
+ *         userName: { type: string }
  *     SessionResponse:
  *       type: object
  *       properties:
- *         sessionId:
- *           type: string
- *         shuttleId:
- *           type: string
- *         shuttleRoute:
- *           type: string
- *         seats:
- *           type: integer
- *         price:
- *           type: number
- *         userId:
- *           type: string
- *         userName:
- *           type: string
- *         createdAt:
- *           type: string
- *           format: date-time
- *         updatedAt:
- *           type: string
- *           format: date-time
+ *         sessionId: { type: string }
+ *         shuttleId: { type: string }
+ *         shuttleRoute: { type: string }
+ *         seats: { type: integer }
+ *         price: { type: number }
+ *         userId: { type: string }
+ *         userName: { type: string }
+ *         createdAt: { type: string, format: date-time }
+ *         updatedAt: { type: string, format: date-time }
  */
 
 /**
@@ -151,19 +159,6 @@ const sessionsStore = [];
  *     responses:
  *       200:
  *         description: Session created successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 sessionId:
- *                   type: string
- *       400:
- *         description: Missing required fields
- *       500:
- *         description: Stripe checkout session failed
  */
 app.post("/create-checkout-session", async (req, res) => {
   const { shuttleId, shuttleRoute, seats, price, userId, userName } = req.body;
@@ -182,7 +177,6 @@ app.post("/create-checkout-session", async (req, res) => {
             product_data: {
               name: `Shuttle Booking: ${shuttleRoute}`,
               description: `Car ID: ${shuttleId}, Seats: ${seats}`,
-              metadata: { shuttleId, userId, userName },
             },
             unit_amount: Math.round(price * 100),
           },
@@ -206,12 +200,10 @@ app.post("/create-checkout-session", async (req, res) => {
       createdAt: new Date(),
     };
     sessionsStore.push(newSession);
-
     res.json({ success: true, sessionId: session.id });
   } catch (err) {
     console.error("Stripe Error:", err);
-    const message = ENV === "development" ? err.message : "Stripe checkout session failed";
-    res.status(500).json({ success: false, error: message });
+    res.status(500).json({ success: false, error: "Stripe checkout session failed" });
   }
 });
 
@@ -224,19 +216,6 @@ app.post("/create-checkout-session", async (req, res) => {
  *     responses:
  *       200:
  *         description: Returns all sessions
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 total:
- *                   type: integer
- *                 sessions:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/SessionResponse'
  */
 app.get("/view-all-sessions", (req, res) => {
   res.json({ success: true, total: sessionsStore.length, sessions: sessionsStore });
@@ -254,7 +233,6 @@ app.get("/view-all-sessions", (req, res) => {
  *         schema:
  *           type: string
  *         required: true
- *         description: Session ID
  *     responses:
  *       200:
  *         description: Session found
@@ -263,7 +241,8 @@ app.get("/view-all-sessions", (req, res) => {
  */
 app.get("/view-session/:id", (req, res) => {
   const session = sessionsStore.find((s) => s.sessionId === req.params.id);
-  if (!session) return res.status(404).json({ success: false, error: "Session not found" });
+  if (!session)
+    return res.status(404).json({ success: false, error: "Session not found" });
   res.json({ success: true, session });
 });
 
@@ -273,35 +252,11 @@ app.get("/view-session/:id", (req, res) => {
  *   put:
  *     summary: Edit a session
  *     tags: [Checkout]
- *     parameters:
- *       - in: path
- *         name: id
- *         schema:
- *           type: string
- *         required: true
- *         description: Session ID
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               shuttleRoute:
- *                 type: string
- *               seats:
- *                 type: integer
- *               price:
- *                 type: number
- *     responses:
- *       200:
- *         description: Session updated successfully
- *       404:
- *         description: Session not found
  */
 app.put("/edit-session/:id", (req, res) => {
   const sessionIndex = sessionsStore.findIndex((s) => s.sessionId === req.params.id);
-  if (sessionIndex === -1) return res.status(404).json({ success: false, error: "Session not found" });
+  if (sessionIndex === -1)
+    return res.status(404).json({ success: false, error: "Session not found" });
 
   sessionsStore[sessionIndex] = {
     ...sessionsStore[sessionIndex],
@@ -317,22 +272,11 @@ app.put("/edit-session/:id", (req, res) => {
  *   delete:
  *     summary: Delete a session
  *     tags: [Checkout]
- *     parameters:
- *       - in: path
- *         name: id
- *         schema:
- *           type: string
- *         required: true
- *         description: Session ID
- *     responses:
- *       200:
- *         description: Session deleted successfully
- *       404:
- *         description: Session not found
  */
 app.delete("/delete-session/:id", (req, res) => {
   const sessionIndex = sessionsStore.findIndex((s) => s.sessionId === req.params.id);
-  if (sessionIndex === -1) return res.status(404).json({ success: false, error: "Session not found" });
+  if (sessionIndex === -1)
+    return res.status(404).json({ success: false, error: "Session not found" });
 
   const deletedSession = sessionsStore.splice(sessionIndex, 1);
   res.json({ success: true, deletedSession });
