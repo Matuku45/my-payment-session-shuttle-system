@@ -40,8 +40,6 @@ const ENV = process.env.NODE_ENV || "development";
 
 // ----------------------
 // Swagger setup
-
-
 // ----------------------
 const swaggerOptions = {
   definition: {
@@ -49,43 +47,14 @@ const swaggerOptions = {
     info: {
       title: "Shuttle Booking API",
       version: "1.0.0",
-      description: "API for booking shuttles and creating Stripe checkout sessions",
+      description:
+        "API for booking shuttles, managing checkout sessions, and integrating with Stripe.",
     },
     servers: [
       {
         url: `http://localhost:${process.env.PORT || 3001}`,
       },
     ],
-    components: {
-      schemas: {
-        CheckoutSessionRequest: {
-          type: "object",
-          required: ["shuttleId", "shuttleRoute", "seats", "price", "userId", "userName"],
-          properties: {
-            shuttleId: { type: "string" },
-            shuttleRoute: { type: "string" },
-            seats: { type: "integer" },
-            price: { type: "number" },
-            userId: { type: "string" },
-            userName: { type: "string" },
-          },
-        },
-        SessionResponse: {
-          type: "object",
-          properties: {
-            sessionId: { type: "string" },
-            shuttleId: { type: "string" },
-            shuttleRoute: { type: "string" },
-            seats: { type: "integer" },
-            price: { type: "number" },
-            userId: { type: "string" },
-            userName: { type: "string" },
-            createdAt: { type: "string", format: "date-time" },
-            updatedAt: { type: "string", format: "date-time" },
-          },
-        },
-      },
-    },
   },
   apis: ["./server.js"],
 };
@@ -101,12 +70,12 @@ app.get("/", (req, res) => {
 });
 
 // ----------------------
-// In-memory sessions store
+// In-memory store
 // ----------------------
 const sessionsStore = [];
 
 // ----------------------
-// CRUD & Stripe endpoints
+// CRUD + Stripe endpoints
 // ----------------------
 
 /**
@@ -137,11 +106,11 @@ const sessionsStore = [];
  *           type: string
  *       example:
  *         shuttleId: "343"
- *         shuttleRoute: "rwerwer"
- *         seats: 10
- *         price: 1000
+ *         shuttleRoute: "Cape Town - Stellenbosch"
+ *         seats: 2
+ *         price: 450
  *         userId: "3333"
- *         userName: "adssad"
+ *         userName: "John Doe"
  *     SessionResponse:
  *       type: object
  *       properties:
@@ -162,8 +131,40 @@ const sessionsStore = [];
  *         createdAt:
  *           type: string
  *           format: date-time
+ *         updatedAt:
+ *           type: string
+ *           format: date-time
  */
 
+/**
+ * @swagger
+ * /create-checkout-session:
+ *   post:
+ *     summary: Create a new Stripe checkout session
+ *     tags: [Checkout]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/CheckoutSessionRequest'
+ *     responses:
+ *       200:
+ *         description: Session created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 sessionId:
+ *                   type: string
+ *       400:
+ *         description: Missing required fields
+ *       500:
+ *         description: Stripe checkout session failed
+ */
 app.post("/create-checkout-session", async (req, res) => {
   const { shuttleId, shuttleRoute, seats, price, userId, userName } = req.body;
   if (!shuttleId || !shuttleRoute || !seats || !price || !userId || !userName) {
@@ -188,8 +189,10 @@ app.post("/create-checkout-session", async (req, res) => {
           quantity: seats,
         },
       ],
-      success_url: "https://simple-shuttle-booking-system2-bold-shadow-2248.fly.dev/success",
-      cancel_url: "https://simple-shuttle-booking-system2-bold-shadow-2248.fly.dev/cancel",
+      success_url:
+        "https://simple-shuttle-booking-system2-bold-shadow-2248.fly.dev/success",
+      cancel_url:
+        "https://simple-shuttle-booking-system2-bold-shadow-2248.fly.dev/cancel",
     });
 
     const newSession = {
@@ -211,15 +214,16 @@ app.post("/create-checkout-session", async (req, res) => {
     res.status(500).json({ success: false, error: message });
   }
 });
+
 /**
  * @swagger
  * /view-all-sessions:
  *   get:
- *     summary: Get all checkout sessions
+ *     summary: View all checkout sessions
  *     tags: [Checkout]
  *     responses:
  *       200:
- *         description: List of all sessions
+ *         description: Returns all sessions
  *         content:
  *           application/json:
  *             schema:
@@ -233,20 +237,7 @@ app.post("/create-checkout-session", async (req, res) => {
  *                   type: array
  *                   items:
  *                     $ref: '#/components/schemas/SessionResponse'
- *             example:
- *               success: true
- *               total: 1
- *               sessions:
- *                 - sessionId: "cs_test_a18pob1kb43zEkBY7r7mChHYbwpoPvHHheJljRGWDBXVvM9WNeI9a7Wykj"
- *                   shuttleId: "343"
- *                   shuttleRoute: "rwerwer"
- *                   seats: 10
- *                   price: 1000
- *                   userId: "3333"
- *                   userName: "adssad"
- *                   createdAt: "2025-10-08T23:09:05.000Z"
  */
-
 app.get("/view-all-sessions", (req, res) => {
   res.json({ success: true, total: sessionsStore.length, sessions: sessionsStore });
 });
@@ -260,17 +251,13 @@ app.get("/view-all-sessions", (req, res) => {
  *     parameters:
  *       - in: path
  *         name: id
- *         required: true
  *         schema:
  *           type: string
+ *         required: true
  *         description: Session ID
  *     responses:
  *       200:
  *         description: Session found
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/SessionResponse'
  *       404:
  *         description: Session not found
  */
@@ -284,14 +271,14 @@ app.get("/view-session/:id", (req, res) => {
  * @swagger
  * /edit-session/{id}:
  *   put:
- *     summary: Update a session
+ *     summary: Edit a session
  *     tags: [Checkout]
  *     parameters:
  *       - in: path
  *         name: id
- *         required: true
  *         schema:
  *           type: string
+ *         required: true
  *         description: Session ID
  *     requestBody:
  *       required: true
@@ -308,7 +295,7 @@ app.get("/view-session/:id", (req, res) => {
  *                 type: number
  *     responses:
  *       200:
- *         description: Session updated
+ *         description: Session updated successfully
  *       404:
  *         description: Session not found
  */
@@ -316,8 +303,11 @@ app.put("/edit-session/:id", (req, res) => {
   const sessionIndex = sessionsStore.findIndex((s) => s.sessionId === req.params.id);
   if (sessionIndex === -1) return res.status(404).json({ success: false, error: "Session not found" });
 
-  const updatedData = req.body;
-  sessionsStore[sessionIndex] = { ...sessionsStore[sessionIndex], ...updatedData, updatedAt: new Date() };
+  sessionsStore[sessionIndex] = {
+    ...sessionsStore[sessionIndex],
+    ...req.body,
+    updatedAt: new Date(),
+  };
   res.json({ success: true, session: sessionsStore[sessionIndex] });
 });
 
@@ -330,13 +320,13 @@ app.put("/edit-session/:id", (req, res) => {
  *     parameters:
  *       - in: path
  *         name: id
- *         required: true
  *         schema:
  *           type: string
+ *         required: true
  *         description: Session ID
  *     responses:
  *       200:
- *         description: Session deleted
+ *         description: Session deleted successfully
  *       404:
  *         description: Session not found
  */
@@ -353,5 +343,5 @@ app.delete("/delete-session/:id", (req, res) => {
 // ----------------------
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
-  console.log(`Backend running on port ${PORT} in ${ENV} mode`);
+  console.log(`✅ Backend running on port ${PORT} in ${ENV} mode`);
 });
