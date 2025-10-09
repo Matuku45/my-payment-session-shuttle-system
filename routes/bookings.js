@@ -18,7 +18,13 @@ let bookings = [];
  *     tags: [Bookings]
  *     responses:
  *       200:
- *         description: List of all bookings
+ *         description: JSON list of all bookings
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               total: 0
+ *               bookings: []
  */
 router.get("/", (req, res) => {
   res.json({ success: true, total: bookings.length, bookings });
@@ -34,14 +40,23 @@ router.get("/", (req, res) => {
  *       - in: path
  *         name: id
  *         required: true
- *         description: Booking ID
  *         schema:
  *           type: string
  *     responses:
  *       200:
  *         description: Booking found
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               booking: { id: "1", passengerName: "John", route: "A-B", price: 50 }
  *       404:
  *         description: Booking not found
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: false
+ *               error: "Booking not found"
  */
 router.get("/:id", (req, res) => {
   const booking = bookings.find((b) => b.id === req.params.id);
@@ -57,7 +72,6 @@ router.get("/:id", (req, res) => {
  *     tags: [Bookings]
  *     requestBody:
  *       required: true
- *       description: Booking object to create
  *       content:
  *         application/json:
  *           schema:
@@ -70,19 +84,20 @@ router.get("/:id", (req, res) => {
  *             properties:
  *               id:
  *                 type: string
- *                 description: Unique booking ID
  *               passengerName:
  *                 type: string
- *                 description: Name of the passenger
  *               route:
  *                 type: string
- *                 description: Shuttle route
  *               price:
  *                 type: number
- *                 description: Booking price
  *     responses:
  *       201:
  *         description: Booking created successfully
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               booking: { id: "1", passengerName: "John", route: "A-B", price: 50, createdAt: "2025-10-09T00:00:00Z" }
  */
 router.post("/", (req, res) => {
   const { id, passengerName, route, price } = req.body;
@@ -104,12 +119,10 @@ router.post("/", (req, res) => {
  *       - in: path
  *         name: id
  *         required: true
- *         description: Booking ID to update
  *         schema:
  *           type: string
  *     requestBody:
  *       required: true
- *       description: Fields to update
  *       content:
  *         application/json:
  *           schema:
@@ -117,18 +130,25 @@ router.post("/", (req, res) => {
  *             properties:
  *               passengerName:
  *                 type: string
- *                 description: Updated passenger name
  *               route:
  *                 type: string
- *                 description: Updated shuttle route
  *               price:
  *                 type: number
- *                 description: Updated price
  *     responses:
  *       200:
  *         description: Booking updated successfully
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               booking: { id: "1", passengerName: "John", route: "A-B", price: 60, updatedAt: "2025-10-09T00:00:00Z" }
  *       404:
  *         description: Booking not found
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: false
+ *               error: "Booking not found"
  */
 router.put("/:id", (req, res) => {
   const bookingIndex = bookings.findIndex((b) => b.id === req.params.id);
@@ -149,14 +169,23 @@ router.put("/:id", (req, res) => {
  *       - in: path
  *         name: id
  *         required: true
- *         description: Booking ID to delete
  *         schema:
  *           type: string
  *     responses:
  *       200:
  *         description: Booking deleted successfully
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               deletedBooking: { id: "1", passengerName: "John", route: "A-B", price: 50 }
  *       404:
  *         description: Booking not found
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: false
+ *               error: "Booking not found"
  */
 router.delete("/:id", (req, res) => {
   const bookingIndex = bookings.findIndex((b) => b.id === req.params.id);
