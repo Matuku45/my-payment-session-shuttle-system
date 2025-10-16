@@ -86,7 +86,7 @@ app.get("/", (req, res) => {
 // API Routes
 // ----------------------
 app.use("/api/cars", carsRouter);
-app.use("/api/bookings", bookingsRouter);
+app.use("/bookings", bookingsRouter);
 app.use("/api/checkout", checkoutRouter);
 
 // ----------------------
