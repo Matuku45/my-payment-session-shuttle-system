@@ -1,42 +1,52 @@
 const express = require("express");
 const router = express.Router();
+
+// In-memory cars storage
 let cars = [
   {
     id: "CAR-001",
     name: "Toyota Quantum",
     registration: "2025-QNT-001",
-    numberPlate: "CA 123-456"
+    numberPlate: "CA 123-456",
   },
   {
     id: "CAR-002",
     name: "Ford Transit",
     registration: "2025-FRD-002",
-    numberPlate: "CA 789-012"
-  }
+    numberPlate: "CA 789-012",
+  },
 ];
 
 /**
  * @swagger
  * tags:
  *   - name: Cars
- *     description: Manage available shuttle cars
+ *     description: Manage shuttle cars
  */
 
 /**
  * @swagger
- * /cars:
+ * /api/cars:
  *   get:
  *     summary: Get all cars
  *     tags: [Cars]
  *     responses:
  *       200:
- *         description: JSON list of all cars
+ *         description: List of cars
  *         content:
  *           application/json:
  *             example:
  *               success: true
- *               total: 0
- *               cars: []
+ *               total: 2
+ *               cars:
+ *                 - id: "CAR-001"
+ *                   name: "Toyota Quantum"
+ *                   registration: "2025-QNT-001"
+ *                   numberPlate: "CA 123-456"
+ *                 - id: "CAR-002"
+ *                   name: "Ford Transit"
+ *                   registration: "2025-FRD-002"
+ *                   numberPlate: "CA 789-012"
  */
 router.get("/", (req, res) => {
   res.json({ success: true, total: cars.length, cars });
@@ -44,7 +54,7 @@ router.get("/", (req, res) => {
 
 /**
  * @swagger
- * /cars/{id}:
+ * /api/cars/{id}:
  *   get:
  *     summary: Get a car by ID
  *     tags: [Cars]
@@ -54,21 +64,12 @@ router.get("/", (req, res) => {
  *         required: true
  *         schema:
  *           type: string
+ *           example: "CAR-001"
  *     responses:
  *       200:
  *         description: Car found
- *         content:
- *           application/json:
- *             example:
- *               success: true
- *               car: { id: "1", name: "Benz", registration: "REG123", numberPlate: "NP123" }
  *       404:
  *         description: Car not found
- *         content:
- *           application/json:
- *             example:
- *               success: false
- *               error: "Car not found"
  */
 router.get("/:id", (req, res) => {
   const car = cars.find((c) => c.id === req.params.id);
@@ -78,7 +79,7 @@ router.get("/:id", (req, res) => {
 
 /**
  * @swagger
- * /cars:
+ * /api/cars:
  *   post:
  *     summary: Add a new car
  *     tags: [Cars]
@@ -96,36 +97,35 @@ router.get("/:id", (req, res) => {
  *             properties:
  *               id:
  *                 type: string
+ *                 example: "CAR-003"
  *               name:
  *                 type: string
+ *                 example: "Mercedes Sprinter"
  *               registration:
  *                 type: string
+ *                 example: "2025-MRS-003"
  *               numberPlate:
  *                 type: string
+ *                 example: "CA 345-678"
  *     responses:
  *       201:
- *         description: Car added successfully
- *         content:
- *           application/json:
- *             example:
- *               success: true
- *               car: { id: "1", name: "Benz", registration: "REG123", numberPlate: "NP123" }
+ *         description: Car added
  */
 router.post("/", (req, res) => {
   const { id, name, registration, numberPlate } = req.body;
   if (!id || !name || !registration || !numberPlate)
     return res.status(400).json({ success: false, error: "Missing fields" });
 
-  const newCar = { id, name, registration, numberPlate, createdAt: new Date() };
+  const newCar = { id, name, registration, numberPlate, createdAt: new Date().toISOString() };
   cars.push(newCar);
   res.status(201).json({ success: true, car: newCar });
 });
 
 /**
  * @swagger
- * /cars/{id}:
+ * /api/cars/{id}:
  *   put:
- *     summary: Update car details
+ *     summary: Update a car
  *     tags: [Cars]
  *     parameters:
  *       - in: path
@@ -148,32 +148,21 @@ router.post("/", (req, res) => {
  *                 type: string
  *     responses:
  *       200:
- *         description: Car updated successfully
- *         content:
- *           application/json:
- *             example:
- *               success: true
- *               car: { id: "1", name: "Benz", registration: "REG123", numberPlate: "NP123", updatedAt: "2025-10-09T00:00:00Z" }
+ *         description: Car updated
  *       404:
  *         description: Car not found
- *         content:
- *           application/json:
- *             example:
- *               success: false
- *               error: "Car not found"
  */
 router.put("/:id", (req, res) => {
-  const carIndex = cars.findIndex((c) => c.id === req.params.id);
-  if (carIndex === -1)
-    return res.status(404).json({ success: false, error: "Car not found" });
+  const index = cars.findIndex((c) => c.id === req.params.id);
+  if (index === -1) return res.status(404).json({ success: false, error: "Car not found" });
 
-  cars[carIndex] = { ...cars[carIndex], ...req.body, updatedAt: new Date() };
-  res.json({ success: true, car: cars[carIndex] });
+  cars[index] = { ...cars[index], ...req.body, updatedAt: new Date().toISOString() };
+  res.json({ success: true, car: cars[index] });
 });
 
 /**
  * @swagger
- * /cars/{id}:
+ * /api/cars/{id}:
  *   delete:
  *     summary: Delete a car
  *     tags: [Cars]
@@ -185,26 +174,15 @@ router.put("/:id", (req, res) => {
  *           type: string
  *     responses:
  *       200:
- *         description: Car deleted successfully
- *         content:
- *           application/json:
- *             example:
- *               success: true
- *               deletedCar: { id: "1", name: "Benz", registration: "REG123", numberPlate: "NP123" }
+ *         description: Car deleted
  *       404:
  *         description: Car not found
- *         content:
- *           application/json:
- *             example:
- *               success: false
- *               error: "Car not found"
  */
 router.delete("/:id", (req, res) => {
-  const carIndex = cars.findIndex((c) => c.id === req.params.id);
-  if (carIndex === -1)
-    return res.status(404).json({ success: false, error: "Car not found" });
+  const index = cars.findIndex((c) => c.id === req.params.id);
+  if (index === -1) return res.status(404).json({ success: false, error: "Car not found" });
 
-  const deletedCar = cars.splice(carIndex, 1);
+  const deletedCar = cars.splice(index, 1);
   res.json({ success: true, deletedCar });
 });
 
