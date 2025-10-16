@@ -1,3 +1,5 @@
+// api-security.js
+
 const express = require("express");
 const crypto = require("crypto");
 const router = express.Router();
@@ -57,7 +59,7 @@ router.get("/login", (req, res) => {
             border-radius: 12px;
             box-shadow: 0 4px 30px rgba(0,0,0,0.1);
             backdrop-filter: blur(10px);
-            width: 300px;
+            width: 320px;
             text-align: center;
           }
           h2 {
@@ -122,7 +124,16 @@ router.get("/login", (req, res) => {
                 body: JSON.stringify(data)
               });
               const json = await res.json();
-              result.textContent = JSON.stringify(json, null, 2);
+              if (json.success) {
+                // Show the JSON in the pre tag
+                result.textContent = JSON.stringify(json, null, 2);
+                // Redirect to Swagger docs after 1.5 seconds
+                setTimeout(() => {
+                  window.location.href = '/api-docs';
+                }, 1500);
+              } else {
+                result.textContent = JSON.stringify(json, null, 2);
+              }
             } catch (err) {
               result.textContent = 'Error: ' + err;
             }
