@@ -1,7 +1,19 @@
 const express = require("express");
 const router = express.Router();
-
-let cars = [];
+let cars = [
+  {
+    id: "CAR-001",
+    name: "Toyota Quantum",
+    registration: "2025-QNT-001",
+    numberPlate: "CA 123-456"
+  },
+  {
+    id: "CAR-002",
+    name: "Ford Transit",
+    registration: "2025-FRD-002",
+    numberPlate: "CA 789-012"
+  }
+];
 
 /**
  * @swagger
