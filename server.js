@@ -1,4 +1,3 @@
-// server.js
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
@@ -12,7 +11,7 @@ const app = express();
 // ----------------------
 const carsRouter = require("./routes/cars");
 const bookingsRouter = require("./routes/bookings");
-const checkoutRouter = require("./routes/checkout"); // ✅ your new checkout route
+const checkoutRouter = require("./routes/checkout");
 
 // ----------------------
 // CORS setup
@@ -61,10 +60,7 @@ const swaggerOptions = {
       },
     ],
   },
-  apis: [
-    path.join(__dirname, "server.js"),
-    path.join(__dirname, "routes/*.js"),
-  ],
+  apis: [path.join(__dirname, "routes/*.js")],
 };
 
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
@@ -91,7 +87,7 @@ app.get("/", (req, res) => {
 // ----------------------
 app.use("/api/cars", carsRouter);
 app.use("/api/bookings", bookingsRouter);
-app.use("/api/checkout", checkoutRouter); // ✅ mounted checkout router
+app.use("/api/checkout", checkoutRouter);
 
 // ----------------------
 // Start the server
