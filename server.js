@@ -3,6 +3,7 @@ const cors = require("cors");
 const path = require("path");
 const swaggerJsdoc = require("swagger-jsdoc");
 const swaggerUi = require("swagger-ui-express");
+const { router: apiSecurityRouter, authenticate } = require("./api-security");
 
 const app = express();
 
@@ -12,17 +13,14 @@ const app = express();
 const carsRouter = require("./routes/cars");
 const bookingsRouter = require("./routes/bookings");
 const checkoutRouter = require("./routes/checkout");
+const authRouter = require("./routes/auth"); // optional additional auth
 
 // ----------------------
-// CORS setup
+// Middleware
 // ----------------------
-app.use(
-  cors({
-    origin: "*", // allow all for testing
-  })
-);
-
+app.use(cors({ origin: "*" }));
 app.use(express.json());
+app.use(express.urlencoded({ extended: true })); // to support HTML forms
 
 // ----------------------
 // Swagger setup
@@ -59,16 +57,23 @@ app.get("/", (req, res) => {
       cars: "/api/cars",
       bookings: "/api/bookings",
       checkout: "/api/checkout",
+      login: "/api-security/login",
     },
   });
 });
 
 // ----------------------
-// API Routes
+// API Routes with authentication
 // ----------------------
-app.use("/api/cars", carsRouter);        // <-- mounted at /api/cars
-app.use("/api/bookings", bookingsRouter);
-app.use("/api/checkout", checkoutRouter);
+app.use("/api-security", apiSecurityRouter);
+
+// Protect all API routes with token-based authentication
+app.use("/api/cars", authenticate, carsRouter);
+app.use("/api/bookings", authenticate, bookingsRouter);
+app.use("/api/checkout", authenticate, checkoutRouter);
+
+// Auth routes for user management
+app.use("/users", authRouter);
 
 // ----------------------
 // Start server
