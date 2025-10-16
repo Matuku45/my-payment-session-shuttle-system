@@ -16,31 +16,13 @@ const checkoutRouter = require("./routes/checkout");
 // ----------------------
 // CORS setup
 // ----------------------
-const allowedOrigins = [
-  "*",
-  "http://localhost:5173",
-  "https://simple-shuttle-booking-system2-bold-shadow-2248.fly.dev",
-];
-
 app.use(
   cors({
-    origin: (origin, callback) => {
-      if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin) || allowedOrigins.includes("*")) {
-        return callback(null, true);
-      } else {
-        return callback(new Error("Not allowed by CORS"));
-      }
-    },
+    origin: "*", // allow all for testing
   })
 );
 
 app.use(express.json());
-
-// ----------------------
-// Environment
-// ----------------------
-const ENV = process.env.NODE_ENV || "development";
 
 // ----------------------
 // Swagger setup
@@ -72,7 +54,6 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.get("/", (req, res) => {
   res.json({
     message: "🚐 Shuttle Booking API is running",
-    environment: ENV,
     routes: {
       swaggerDocs: "/api-docs",
       cars: "/api/cars",
@@ -85,14 +66,14 @@ app.get("/", (req, res) => {
 // ----------------------
 // API Routes
 // ----------------------
-app.use("/api/cars", carsRouter);
-app.use("/bookings", bookingsRouter);
+app.use("/api/cars", carsRouter);        // <-- mounted at /api/cars
+app.use("/api/bookings", bookingsRouter);
 app.use("/api/checkout", checkoutRouter);
 
 // ----------------------
-// Start the server
+// Start server
 // ----------------------
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
-  console.log(`✅ Backend running on port ${PORT} in ${ENV} mode`);
+  console.log(`✅ Backend running on port ${PORT}`);
 });
