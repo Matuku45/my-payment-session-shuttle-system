@@ -1,3 +1,5 @@
+// server.js
+
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
@@ -20,7 +22,7 @@ const authRouter = require("./routes/auth"); // optional additional auth
 // ----------------------
 app.use(cors({ origin: "*" }));
 app.use(express.json());
-app.use(express.urlencoded({ extended: true })); // to support HTML forms
+app.use(express.urlencoded({ extended: true })); // support HTML forms
 
 // ----------------------
 // Swagger setup
@@ -47,19 +49,11 @@ const swaggerSpec = swaggerJsdoc(swaggerOptions);
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // ----------------------
-// Root endpoint
+// Serve API login page at root
 // ----------------------
 app.get("/", (req, res) => {
-  res.json({
-    message: "🚐 Shuttle Booking API is running",
-    routes: {
-      swaggerDocs: "/api-docs",
-      cars: "/api/cars",
-      bookings: "/api/bookings",
-      checkout: "/api/checkout",
-      login: "/api-security/login",
-    },
-  });
+  // Redirect to API login page
+  res.redirect("/api-security/login");
 });
 
 // ----------------------
@@ -81,4 +75,6 @@ app.use("/users", authRouter);
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`✅ Backend running on port ${PORT}`);
+  console.log(`🔑 Root login: http://localhost:${PORT}/`);
+  console.log(`📄 Swagger docs: http://localhost:${PORT}/api-docs`);
 });
