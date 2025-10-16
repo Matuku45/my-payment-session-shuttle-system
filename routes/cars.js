@@ -4,7 +4,7 @@ const router = express.Router();
 // In-memory cars storage
 let cars = [
   {
-    id: "CAR-001",
+    id: "CAR-00122",
     name: "Toyota Quantum",
     registration: "2025-QNT-001",
     numberPlate: "CA 123-456",

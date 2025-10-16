@@ -1,4 +1,3 @@
-// routes/checkout.js
 const express = require("express");
 const router = express.Router();
 const stripe = require("stripe")(
@@ -29,12 +28,24 @@ let sessionsStore = [];
  *         - userId
  *         - userName
  *       properties:
- *         shuttleId: { type: string }
- *         shuttleRoute: { type: string }
- *         seats: { type: integer }
- *         price: { type: number }
- *         userId: { type: string }
- *         userName: { type: string }
+ *         shuttleId:
+ *           type: string
+ *           example: "SHTL-001"
+ *         shuttleRoute:
+ *           type: string
+ *           example: "Cape Town → Paarl"
+ *         seats:
+ *           type: integer
+ *           example: 2
+ *         price:
+ *           type: number
+ *           example: 120
+ *         userId:
+ *           type: string
+ *           example: "USR-001"
+ *         userName:
+ *           type: string
+ *           example: "Thabiso Mapoulo"
  */
 
 /**
@@ -43,6 +54,24 @@ let sessionsStore = [];
  *   post:
  *     summary: Create a new Stripe checkout session
  *     tags: [Checkout]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/CheckoutSessionRequest'
+ *     responses:
+ *       200:
+ *         description: Session created successfully
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               sessionId: "cs_test_123456"
+ *       400:
+ *         description: Missing required fields
+ *       500:
+ *         description: Stripe checkout session failed
  */
 router.post("/create", async (req, res) => {
   const { shuttleId, shuttleRoute, seats, price, userId, userName } = req.body;
@@ -68,10 +97,8 @@ router.post("/create", async (req, res) => {
           quantity: seats,
         },
       ],
-      success_url:
-        "https://simple-shuttle-booking-system2-bold-shadow-2248.fly.dev/success",
-      cancel_url:
-        "https://simple-shuttle-booking-system2-bold-shadow-2248.fly.dev/cancel",
+      success_url: "https://simple-shuttle-booking-system2-bold-shadow-2248.fly.dev/success",
+      cancel_url: "https://simple-shuttle-booking-system2-bold-shadow-2248.fly.dev/cancel",
     });
 
     const newSession = {
@@ -97,8 +124,25 @@ router.post("/create", async (req, res) => {
  * @swagger
  * /api/checkout/sessions:
  *   get:
- *     summary: View all checkout sessions
+ *     summary: Get all checkout sessions
  *     tags: [Checkout]
+ *     responses:
+ *       200:
+ *         description: List of sessions
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               total: 1
+ *               sessions:
+ *                 - sessionId: "cs_test_123"
+ *                   shuttleId: "SHTL-001"
+ *                   shuttleRoute: "Cape Town → Paarl"
+ *                   seats: 2
+ *                   price: 120
+ *                   userId: "USR-001"
+ *                   userName: "Thabiso Mapoulo"
+ *                   createdAt: "2025-10-16T20:00:00Z"
  */
 router.get("/sessions", (req, res) => {
   res.json({ success: true, total: sessionsStore.length, sessions: sessionsStore });
@@ -110,11 +154,22 @@ router.get("/sessions", (req, res) => {
  *   get:
  *     summary: Get a single session by ID
  *     tags: [Checkout]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "cs_test_123456"
+ *     responses:
+ *       200:
+ *         description: Session found
+ *       404:
+ *         description: Session not found
  */
 router.get("/session/:id", (req, res) => {
   const session = sessionsStore.find((s) => s.sessionId === req.params.id);
-  if (!session)
-    return res.status(404).json({ success: false, error: "Session not found" });
+  if (!session) return res.status(404).json({ success: false, error: "Session not found" });
   res.json({ success: true, session });
 });
 
@@ -124,18 +179,35 @@ router.get("/session/:id", (req, res) => {
  *   put:
  *     summary: Edit a session
  *     tags: [Checkout]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "cs_test_123456"
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               seats:
+ *                 type: integer
+ *               price:
+ *                 type: number
+ *     responses:
+ *       200:
+ *         description: Session updated
+ *       404:
+ *         description: Session not found
  */
 router.put("/session/:id", (req, res) => {
   const index = sessionsStore.findIndex((s) => s.sessionId === req.params.id);
-  if (index === -1)
-    return res.status(404).json({ success: false, error: "Session not found" });
+  if (index === -1) return res.status(404).json({ success: false, error: "Session not found" });
 
-  sessionsStore[index] = {
-    ...sessionsStore[index],
-    ...req.body,
-    updatedAt: new Date(),
-  };
-
+  sessionsStore[index] = { ...sessionsStore[index], ...req.body, updatedAt: new Date() };
   res.json({ success: true, session: sessionsStore[index] });
 });
 
@@ -145,11 +217,22 @@ router.put("/session/:id", (req, res) => {
  *   delete:
  *     summary: Delete a session
  *     tags: [Checkout]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "cs_test_123456"
+ *     responses:
+ *       200:
+ *         description: Session deleted
+ *       404:
+ *         description: Session not found
  */
 router.delete("/session/:id", (req, res) => {
   const index = sessionsStore.findIndex((s) => s.sessionId === req.params.id);
-  if (index === -1)
-    return res.status(404).json({ success: false, error: "Session not found" });
+  if (index === -1) return res.status(404).json({ success: false, error: "Session not found" });
 
   const deletedSession = sessionsStore.splice(index, 1);
   res.json({ success: true, deletedSession });
