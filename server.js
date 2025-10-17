@@ -63,7 +63,7 @@ app.use("/api-security", apiSecurityRouter);
 
 // Protect all API routes with token-based authentication
 app.use("/api/cars", authenticate, carsRouter);
-app.use("/api/bookings", authenticate, bookingsRouter);
+app.use("/bookings",  bookingsRouter);
 app.use("/api/checkout", authenticate, checkoutRouter);
 
 // Auth routes for user management
