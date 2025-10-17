@@ -1,25 +1,29 @@
-// routes/grasshopper-api-route.js
-// Express router to interact with GraphHopper APIs (routing, isochrone, optimization, matrix)
-// Provides dummy storage for directions for demonstration/testing
+/**
+ * Express router to simulate GraphHopper routing
+ * - Supports full CRUD for dummy routes
+ * - Integrates optional GraphHopper live API if key is provided
+ */
 
 const express = require('express');
 const axios = require('axios');
 const https = require('https');
 const router = express.Router();
 
-// HTTPS agent for keepAlive
 const httpsAgent = new https.Agent({ keepAlive: true, maxSockets: 10 });
 const GH_BASE = 'https://graphhopper.com/api/1';
 
 // Dummy in-memory storage for routes
 let dummyRoutes = [];
 
-// Utility: get API key
+/** Utility: generate route ID */
+const generateId = () => Date.now().toString(36) + Math.random().toString(36).slice(2);
+
+/** Utility: get API key */
 function getApiKey(req) {
   return process.env.GRAPHHOPPER_API_KEY || req.query.key || req.body.key;
 }
 
-// Axios error handler
+/** Helper: handle axios errors */
 function handleAxiosError(res, err) {
   if (err.response) {
     return res.status(err.response.status).json({
@@ -36,71 +40,25 @@ function handleAxiosError(res, err) {
  * @swagger
  * tags:
  *   - name: GraphHopper
- *     description: Routing endpoints using GraphHopper API
+ *     description: Routing, isochrones, matrix, and dummy routes
  */
 
-/**
- * @swagger
- * /api/graphhopper/route:
- *   get:
- *     summary: Get a route between points (live or dummy)
- *     tags: [GraphHopper]
- *     parameters:
- *       - in: query
- *         name: point
- *         schema:
- *           type: array
- *           items:
- *             type: string
- *             example: "52.5160,13.3779"
- *         description: Repeatable lat,lon points
- *       - in: query
- *         name: profile
- *         schema:
- *           type: string
- *           enum: [car, bike, foot]
- *           default: car
- *       - in: query
- *         name: key
- *         schema:
- *           type: string
- *         description: GraphHopper API key
- *     responses:
- *       200:
- *         description: Route result
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 route:
- *                   type: object
- *                   properties:
- *                     distance_m:
- *                       type: number
- *                     time_ms:
- *                       type: number
- *                     bbox:
- *                       type: array
- *                       items:
- *                         type: number
- *                     encoded_polyline:
- *                       type: string
- *                     ascend_m:
- *                       type: number
- *                     descend_m:
- *                       type: number
- *                     instructions:
- *                       type: array
- *                       items:
- *                         type: object
- */
+/** ✅ GET ALL ROUTES */
+router.get('/routes', (req, res) => {
+  res.json({ success: true, count: dummyRoutes.length, routes: dummyRoutes });
+});
+
+/** ✅ GET ONE ROUTE BY ID */
+router.get('/route/:id', (req, res) => {
+  const route = dummyRoutes.find(r => r.id === req.params.id);
+  if (!route) return res.status(404).json({ error: 'Route not found' });
+  res.json({ success: true, route });
+});
+
+/** ✅ GET ROUTE (LIVE OR DUMMY) */
 router.get('/route', async (req, res) => {
   try {
     const key = getApiKey(req);
-    if (!key) return res.status(400).json({ error: 'Missing GraphHopper API key.' });
 
     let points = [];
     if (req.query.point) {
@@ -113,113 +71,117 @@ router.get('/route', async (req, res) => {
       });
     }
 
-    // Save dummy route for testing interface
+    // Dummy route
     const dummyRoute = {
+      id: generateId(),
       points,
       profile: req.query.profile || 'car',
       instructions: [
-        { text: 'Start at point A', distance: 0 },
-        { text: 'Turn right', distance: 200 },
-        { text: 'Arrive at point B', distance: 500 }
+        { text: 'Start at origin', distance: 0 },
+        { text: 'Follow main road', distance: 200 },
+        { text: 'Turn left', distance: 500 },
+        { text: 'Arrive at destination', distance: 1000 }
       ],
+      distance_m: 1200,
+      time_ms: 600000,
+      encoded_polyline: 'mock_encoded_polyline_123',
+      ascend_m: 10,
+      descend_m: 8,
       timestamp: new Date()
     };
     dummyRoutes.push(dummyRoute);
 
-    // Call GraphHopper live API
-    const params = new URLSearchParams();
-    points.forEach(p => params.append('point', p));
-    params.set('profile', req.query.profile || 'car');
-    params.set('points_encoded', 'true');
-    params.set('instructions', 'true');
-    params.set('locale', req.query.locale || 'en');
-    params.set('key', key);
+    // Fetch live route if API key available
+    if (key) {
+      const params = new URLSearchParams();
+      points.forEach(p => params.append('point', p));
+      params.set('profile', req.query.profile || 'car');
+      params.set('points_encoded', 'true');
+      params.set('instructions', 'true');
+      params.set('locale', req.query.locale || 'en');
+      params.set('key', key);
 
-    const url = `${GH_BASE}/route?${params.toString()}`;
-    const response = await axios.get(url, { httpsAgent, timeout: 20000 });
-    const route = response.data.paths?.[0];
+      const url = `${GH_BASE}/route?${params.toString()}`;
+      const response = await axios.get(url, { httpsAgent, timeout: 20000 });
+      const route = response.data.paths?.[0];
 
-    const result = route
-      ? {
+      if (route) {
+        const liveRoute = {
+          id: generateId(),
           distance_m: route.distance,
           time_ms: route.time,
           bbox: route.bbox,
           encoded_polyline: route.points,
           ascend_m: route.ascend,
           descend_m: route.descend,
-          instructions: route.instructions || []
-        }
-      : dummyRoute; // fallback to dummy
+          instructions: route.instructions || [],
+          timestamp: new Date()
+        };
+        dummyRoutes.push(liveRoute);
+        return res.json({ success: true, route: liveRoute, all_routes: dummyRoutes });
+      }
+    }
 
-    return res.json({ success: true, route: result, dummy_routes: dummyRoutes });
+    return res.json({ success: true, route: dummyRoute, all_routes: dummyRoutes });
   } catch (err) {
     return handleAxiosError(res, err);
   }
 });
 
-/**
- * @swagger
- * /api/graphhopper/route:
- *   post:
- *     summary: Store a route for testing (dummy)
- *     tags: [GraphHopper]
- *     requestBody:
- *       description: Dummy route payload
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               points:
- *                 type: array
- *                 items:
- *                   type: string
- *                 example: ["52.5160,13.3779", "52.5206,13.3862"]
- *               profile:
- *                 type: string
- *                 example: "car"
- *     responses:
- *       200:
- *         description: Route stored
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 dummy_routes:
- *                   type: array
- */
+/** ✅ CREATE (POST) ROUTE */
 router.post('/route', (req, res) => {
   const { points, profile } = req.body;
   if (!points || !Array.isArray(points) || points.length < 2) {
     return res.status(400).json({ error: 'Provide at least 2 points as an array' });
   }
 
-  const dummyRoute = {
+  const newRoute = {
+    id: generateId(),
     points,
     profile: profile || 'car',
     instructions: [
-      { text: 'Start at point A', distance: 0 },
-      { text: 'Continue straight', distance: 300 },
+      { text: 'Start at origin', distance: 0 },
+      { text: 'Follow main road', distance: 300 },
       { text: 'Arrive at destination', distance: 500 }
     ],
+    distance_m: 800,
+    time_ms: 400000,
+    encoded_polyline: 'mock_encoded_polyline_456',
+    ascend_m: 5,
+    descend_m: 4,
     timestamp: new Date()
   };
 
-  dummyRoutes.push(dummyRoute);
-
-  return res.json({ success: true, dummy_routes: dummyRoutes });
+  dummyRoutes.push(newRoute);
+  return res.json({ success: true, message: 'Route created', route: newRoute });
 });
 
-/**
- * GET /api/graphhopper/status
- * Simple health check
- */
+/** ✅ UPDATE (PUT) ROUTE */
+router.put('/route/:id', (req, res) => {
+  const routeIndex = dummyRoutes.findIndex(r => r.id === req.params.id);
+  if (routeIndex === -1) return res.status(404).json({ error: 'Route not found' });
+
+  const updatedData = req.body;
+  dummyRoutes[routeIndex] = { ...dummyRoutes[routeIndex], ...updatedData, updatedAt: new Date() };
+  res.json({ success: true, message: 'Route updated', route: dummyRoutes[routeIndex] });
+});
+
+/** ✅ DELETE (DELETE) ROUTE */
+router.delete('/route/:id', (req, res) => {
+  const routeIndex = dummyRoutes.findIndex(r => r.id === req.params.id);
+  if (routeIndex === -1) return res.status(404).json({ error: 'Route not found' });
+
+  const deleted = dummyRoutes.splice(routeIndex, 1);
+  res.json({ success: true, message: 'Route deleted', deleted });
+});
+
+/** ✅ STATUS CHECK */
 router.get('/status', (req, res) => {
-  res.json({ ok: true, message: 'GraphHopper proxy running fine.' });
+  res.json({
+    ok: true,
+    message: 'GraphHopper proxy running.',
+    routes_count: dummyRoutes.length
+  });
 });
 
 module.exports = router;
