@@ -1,15 +1,22 @@
 /**
- * @swagger
- * tags:
- *   - name: EmailSandbox
- *     description: Send sandbox receipt emails via Stripe
+ * @file emailsandbox.js
+ * @description Sends sandbox PaymentIntent receipts using Stripe.
  */
+
+const express = require("express");
+const router = express.Router();
+const Stripe = require("stripe");
+
+// Stripe secret key (sandbox)
+const stripe = new Stripe(
+  "sk_test_51RL7bvQjCxIUnFiQOrPE5eY09IT3AnJEgGwfIskXdg8ipkf6SVPyTuCtHawYWfu7jkobdHj8Xkw03xLSVNu2dhxf00ylFOJL4X"
+);
 
 /**
  * @swagger
  * /api/email-sandbox/send-receipt:
  *   post:
- *     summary: Send a Stripe sandbox receipt email
+ *     summary: Send a sandbox receipt email via Stripe
  *     tags: [EmailSandbox]
  *     requestBody:
  *       required: true
@@ -17,22 +24,19 @@
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - email
- *               - name
  *             properties:
  *               email:
  *                 type: string
- *                 description: Customer email
+ *                 example: manuelthabisomapoulo@gmail.com
  *               name:
  *                 type: string
- *                 description: Customer name
+ *                 example: Thabiso Mapoulo
  *               amount:
  *                 type: integer
- *                 description: Amount in cents (default 1999)
+ *                 example: 1999
  *     responses:
  *       200:
- *         description: PaymentIntent created and sandbox receipt sent
+ *         description: Sandbox PaymentIntent created and email attempted
  *         content:
  *           application/json:
  *             schema:
@@ -44,30 +48,7 @@
  *                   type: string
  *                 clientSecret:
  *                   type: string
- *       500:
- *         description: Failed to create PaymentIntent
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 message:
- *                   type: string
- *                 error:
- *                   type: string
  */
-
-const express = require("express");
-const router = express.Router();
-const Stripe = require("stripe");
-
-// Use your Stripe secret key (sandbox)
-const stripe = new Stripe(
-  "sk_test_51RL7bvQjCxIUnFiQOrPE5eY09IT3AnJEgGwfIskXdg8ipkf6SVPyTuCtHawYWfu7jkobdHj8Xkw03xLSVNu2dhxf00ylFOJL4X"
-);
-
 router.post("/send-receipt", async (req, res) => {
   const { email, name, amount } = req.body;
 
